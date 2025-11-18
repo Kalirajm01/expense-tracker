@@ -26,11 +26,18 @@ export const register = async (userData) => {
   }
 };
 
-export const logout = () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('user');
-  // Redirect to login page or home page
-  window.location.href = '/login';
+export const logout = async () => {
+  try {
+    await api.post('/auth/logout');
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    // Always clear local storage and redirect, even if API call fails
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    // Redirect to signin page
+    window.location.href = '/signin';
+  }
 };
 
 export const getCurrentUser = () => {

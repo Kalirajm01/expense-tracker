@@ -13,20 +13,28 @@ import {
   ListItemIcon,
   ListItemText,
   Stack,
+  Avatar,
+  Box,
 } from "@mui/material";
 import { Link as RouterLink, useLocation, useNavigate } from "react-router-dom";
 import MenuIcon from "@mui/icons-material/Menu";
 import HomeIcon from "@mui/icons-material/Home";
 import CategoryIcon from "@mui/icons-material/Category";
 import AssessmentIcon from "@mui/icons-material/Assessment";
+import AccountCircle from "@mui/icons-material/AccountCircle";
+import LogoutIcon from "@mui/icons-material/Logout";
+import { useAuth } from "../../contexts/AuthContext";
 
 const Navbar: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const location = useLocation();
   const navigate = useNavigate();
+  const { user, logout, isAuthenticated } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [userMenuAnchorEl, setUserMenuAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  const userMenuOpen = Boolean(userMenuAnchorEl);
 
   const navItems = [
     { text: "Home", icon: <HomeIcon fontSize="small" />, path: "/" },
@@ -55,6 +63,20 @@ const Navbar: React.FC = () => {
   const handleNavigation = (path: string) => {
     navigate(path);
     handleClose();
+  };
+
+  const handleUserMenu = (event: React.MouseEvent<HTMLElement>) => {
+    setUserMenuAnchorEl(event.currentTarget);
+  };
+
+  const handleUserMenuClose = () => {
+    setUserMenuAnchorEl(null);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/signin');
+    handleUserMenuClose();
   };
 
   return (
@@ -92,101 +114,159 @@ const Navbar: React.FC = () => {
           Expense Tracker
         </Typography>
 
-        <Stack
-          direction="row"
-          spacing={1}
-          sx={{
-            display: { xs: "none", md: "flex" },
-            alignItems: "center",
-          }}
-        >
-          {navItems.map((item) => (
-            <Tooltip key={item.path} title={item.text} arrow>
-              <Button
-                color="inherit"
-                component={RouterLink}
-                to={item.path}
-                startIcon={item.icon}
-                sx={{
-                  minWidth: "auto",
-                  px: 2,
-                  py: 1.5,
-                  borderRadius: 2,
-                  "&.MuiButton-root": {
-                    color: "white",
-                    backgroundColor:
-                      location.pathname === item.path
-                        ? "rgba(255, 255, 255, 0.2)"
-                        : "transparent",
-                    "&:hover": {
-                      backgroundColor: "rgba(255, 255, 255, 0.15)",
-                      transform: "translateY(-1px)",
+        {isAuthenticated && (
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              display: { xs: "none", md: "flex" },
+              alignItems: "center",
+            }}
+          >
+            {navItems.map((item) => (
+              <Tooltip key={item.path} title={item.text} arrow>
+                <Button
+                  color="inherit"
+                  component={RouterLink}
+                  to={item.path}
+                  startIcon={item.icon}
+                  sx={{
+                    minWidth: "auto",
+                    px: 2,
+                    py: 1.5,
+                    borderRadius: 2,
+                    "&.MuiButton-root": {
+                      color: "white",
+                      backgroundColor:
+                        location.pathname === item.path
+                          ? "rgba(255, 255, 255, 0.2)"
+                          : "transparent",
+                      "&:hover": {
+                        backgroundColor: "rgba(255, 255, 255, 0.15)",
+                        transform: "translateY(-1px)",
+                      },
+                      transition: "all 0.2s ease-in-out",
                     },
-                    transition: "all 0.2s ease-in-out",
+                  }}
+                >
+                  {item.text}
+                </Button>
+              </Tooltip>
+            ))}
+          </Stack>
+        )}
+
+        {isAuthenticated && (
+          <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
+            <Typography variant="body1" sx={{ mr: 1, color: "white" }}>
+              {user?.username}
+            </Typography>
+            <IconButton
+              size="large"
+              aria-label="account of current user"
+              aria-controls="menu-appbar"
+              aria-haspopup="true"
+              onClick={handleUserMenu}
+              color="inherit"
+            >
+              <Avatar sx={{ width: 32, height: 32, bgcolor: theme.palette.secondary.main }}>
+                {user?.username?.charAt(0).toUpperCase()}
+              </Avatar>
+            </IconButton>
+          </Box>
+        )}
+
+        {isAuthenticated && (
+          <Menu
+            id="menu-appbar"
+            anchorEl={anchorEl}
+            anchorOrigin={{
+              vertical: "top",
+              horizontal: "left",
+            }}
+            keepMounted
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "left",
+            }}
+            open={open}
+            onClose={handleClose}
+            PaperProps={{
+              sx: {
+                width: 240,
+                maxWidth: "100%",
+                mt: 1,
+                borderRadius: 2,
+                boxShadow: theme.shadows[8],
+              },
+            }}
+          >
+            {navItems.map((item) => (
+              <MenuItem
+                key={item.path}
+                onClick={() => handleNavigation(item.path)}
+                selected={location.pathname === item.path}
+                sx={{
+                  py: 1.5,
+                  px: 2,
+                  "&.Mui-selected": {
+                    backgroundColor: theme.palette.primary.light + "1f",
+                    "&:hover": {
+                      backgroundColor: theme.palette.primary.light + "2e",
+                    },
                   },
                 }}
               >
-                {item.text}
-              </Button>
-            </Tooltip>
-          ))}
-        </Stack>
+                <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>
+                  {React.cloneElement(item.icon, {
+                    color:
+                      location.pathname === item.path ? "primary" : "inherit",
+                  })}
+                </ListItemIcon>
+                <ListItemText
+                  primary={item.text}
+                  primaryTypographyProps={{
+                    fontWeight: location.pathname === item.path ? 600 : 400,
+                  }}
+                />
+              </MenuItem>
+            ))}
+          </Menu>
+        )}
 
-        <Menu
-          id="menu-appbar"
-          anchorEl={anchorEl}
-          anchorOrigin={{
-            vertical: "top",
-            horizontal: "left",
-          }}
-          keepMounted
-          transformOrigin={{
-            vertical: "top",
-            horizontal: "left",
-          }}
-          open={open}
-          onClose={handleClose}
-          PaperProps={{
-            sx: {
-              width: 240,
-              maxWidth: "100%",
-              mt: 1,
-              borderRadius: 2,
-              boxShadow: theme.shadows[8],
-            },
-          }}
-        >
-          {navItems.map((item) => (
-            <MenuItem
-              key={item.path}
-              onClick={() => handleNavigation(item.path)}
-              selected={location.pathname === item.path}
-              sx={{
-                py: 1.5,
-                px: 2,
-                "&.Mui-selected": {
-                  backgroundColor: theme.palette.primary.light + "1f",
-                  "&:hover": {
-                    backgroundColor: theme.palette.primary.light + "2e",
-                  },
-                },
-              }}
-            >
+        {isAuthenticated && (
+          <Menu
+            id="user-menu"
+            anchorEl={userMenuAnchorEl}
+            anchorOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+            keepMounted
+            transformOrigin={{
+              vertical: "top",
+              horizontal: "right",
+            }}
+            open={userMenuOpen}
+            onClose={handleUserMenuClose}
+            PaperProps={{
+              sx: {
+                width: 200,
+                maxWidth: "100%",
+                mt: 1,
+                borderRadius: 2,
+                boxShadow: theme.shadows[8],
+              },
+            }}
+          >
+            <MenuItem onClick={handleLogout} sx={{ py: 1.5, px: 2 }}>
               <ListItemIcon sx={{ color: "inherit", minWidth: 40 }}>
-                {React.cloneElement(item.icon, {
-                  color:
-                    location.pathname === item.path ? "primary" : "inherit",
-                })}
+                <LogoutIcon fontSize="small" />
               </ListItemIcon>
-              <ListItemText
-                primary={item.text}
-                primaryTypographyProps={{
-                  fontWeight: location.pathname === item.path ? 600 : 400,
-                }}
-              />
+              <ListItemText primary="Logout" />
             </MenuItem>
-          ))}
-        </Menu>
+          </Menu>
+        )}
       </Toolbar>
     </AppBar>
   );

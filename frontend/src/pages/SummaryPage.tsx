@@ -148,6 +148,7 @@ const SummaryPage: React.FC = () => {
   };
 
   const handleDeleteClick = (id: number) => {
+    console.log('Delete clicked for expense:', id);
     setExpenseToDelete(id);
     setDeleteDialogOpen(true);
   };
@@ -162,9 +163,13 @@ const SummaryPage: React.FC = () => {
       const updatedSummary = await getExpenseSummary();
       setSummaryData(updatedSummary);
       setDeleteDialogOpen(false);
+      setExpenseToDelete(null);
     } catch (err) {
       setError("Failed to delete expense");
       console.error("Error deleting expense:", err);
+    } finally {
+      setDeleteDialogOpen(false);
+      setExpenseToDelete(null);
     }
   };
 
@@ -514,7 +519,12 @@ const SummaryPage: React.FC = () => {
         </TableContainer>
       </Paper>
 
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={handleDeleteCancel}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           <Typography>Are you sure you want to delete this expense?</Typography>

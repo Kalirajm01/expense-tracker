@@ -37,7 +37,7 @@ import {
   createExpense,
   getExpenseSummary,
 } from "../services/expenseService";
-import { getCategories } from "../services/categoryService";
+import { getCategories, createCategory } from "../services/categoryService";
 
 interface Expense {
   id: number;
@@ -93,6 +93,9 @@ const HomePage: React.FC = () => {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [pendingExpense, setPendingExpense] = useState<any>(null);
   const [duplicateExpense, setDuplicateExpense] = useState<any>(null);
+  const [showCategoryForm, setShowCategoryForm] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryDescription, setNewCategoryDescription] = useState("");
 
   // Process monthly data for the chart
   const processMonthlyData = (expenses: Expense[]) => {
@@ -189,6 +192,9 @@ const HomePage: React.FC = () => {
       category_id: categories[0]?.id || "",
     });
     setFormErrors({ amount: "", description: "", category_id: "", date: "" });
+    setShowCategoryForm(false);
+    setNewCategoryName("");
+    setNewCategoryDescription("");
   };
 
   const handleCloseAddModal = () => {
@@ -234,7 +240,10 @@ const HomePage: React.FC = () => {
       valid = false;
     }
 
-    if (!newExpense.category_id) {
+    if (categories.length === 0 && !showCategoryForm) {
+      newErrors.category_id = "Please add a category first";
+      valid = false;
+    } else if (categories.length > 0 && !newExpense.category_id) {
       newErrors.category_id = "Please select a category";
       valid = false;
     }
@@ -311,6 +320,40 @@ const HomePage: React.FC = () => {
     setShowDuplicateModal(false);
     setPendingExpense(null);
     setDuplicateExpense(null);
+  };
+
+  // Category creation handlers
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      setError("Category name is required");
+      return;
+    }
+
+    try {
+      const newCategory = await createCategory({
+        name: newCategoryName.trim(),
+        description: newCategoryDescription.trim(),
+      });
+
+      setCategories((prev) => [...prev, newCategory]);
+      setNewExpense((prev) => ({
+        ...prev,
+        category_id: newCategory.id,
+      }));
+      setShowCategoryForm(false);
+      setNewCategoryName("");
+      setNewCategoryDescription("");
+    } catch (error: any) {
+      setError(
+        error.response?.data?.error || "Failed to create category. Please try again."
+      );
+    }
+  };
+
+  const handleCancelCategoryCreation = () => {
+    setShowCategoryForm(false);
+    setNewCategoryName("");
+    setNewCategoryDescription("");
   };
 
   // Render the component
@@ -539,23 +582,70 @@ const HomePage: React.FC = () => {
               InputLabelProps={{ shrink: true }}
               inputProps={{ max: format(new Date(), "yyyy-MM-dd") }}
             />
-            <TextField
-              select
-              fullWidth
-              margin="normal"
-              label="Category"
-              name="category_id"
-              value={newExpense.category_id || ""}
-              onChange={handleInputChange}
-              error={!!formErrors.category_id}
-              helperText={formErrors.category_id}
-            >
-              {categories.map((category) => (
-                <MenuItem key={category.id} value={category.id}>
-                  {category.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            {showCategoryForm ? (
+              <Box sx={{ mt: 2, p: 2, border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
+                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
+                  Create New Category
+                </Typography>
+                <TextField
+                  fullWidth
+                  margin="normal"
+                  label="Category Name"
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  size="small"
+                />
+                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                  <Button
+                    size="small"
+                    onClick={handleCreateCategory}
+                    variant="contained"
+                    color="primary"
+                  >
+                    Create Category
+                  </Button>
+                  <Button
+                    size="small"
+                    onClick={handleCancelCategoryCreation}
+                    variant="outlined"
+                  >
+                    Cancel
+                  </Button>
+                </Box>
+              </Box>
+            ) : categories.length === 0 ? (
+              <Box sx={{ mt: 2, p: 2, bgcolor: theme.palette.warning.light, borderRadius: 1 }}>
+                <Typography variant="body2" color="warning.main" sx={{ mb: 1 }}>
+                  No categories available. Please add one to continue.
+                </Typography>
+                <Button
+                  size="small"
+                  onClick={() => setShowCategoryForm(true)}
+                  variant="contained"
+                  color="warning"
+                >
+                  Add Category
+                </Button>
+              </Box>
+            ) : (
+              <TextField
+                select
+                fullWidth
+                margin="normal"
+                label="Category"
+                name="category_id"
+                value={newExpense.category_id || ""}
+                onChange={handleInputChange}
+                error={!!formErrors.category_id}
+                helperText={formErrors.category_id}
+              >
+                {categories.map((category) => (
+                  <MenuItem key={category.id} value={category.id}>
+                    {category.name}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, pr: 3, pb: 3 }}>
