@@ -1,6 +1,13 @@
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from extensions import db
 import bcrypt
+
+# IST is UTC+5:30
+IST_OFFSET = timedelta(hours=5, minutes=30)
+
+def get_ist_now():
+    """Get current time in IST timezone"""
+    return datetime.now(timezone.utc) + IST_OFFSET
 
 class Category(db.Model):
     __tablename__ = 'categories'
@@ -8,8 +15,8 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     description = db.Column(db.Text)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=datetime)
+    updated_at = db.Column(db.DateTime, default=datetime, onupdate=datetime)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
 
     expenses = db.relationship('Expense', backref='category', lazy=True, cascade='all, delete-orphan')
@@ -31,9 +38,9 @@ class Expense(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
     description = db.Column(db.Text)
-    date = db.Column(db.Date, nullable=False, default=datetime.utcnow)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    date = db.Column(db.Date, nullable=False, default=lambda: get_ist_now().date())
+    created_at = db.Column(db.DateTime, default=get_ist_now)
+    updated_at = db.Column(db.DateTime, default=get_ist_now, onupdate=get_ist_now)
 
     category_id = db.Column(db.Integer, db.ForeignKey('categories.id'), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
@@ -57,8 +64,8 @@ class User(db.Model):
     username = db.Column(db.String(80), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(128), nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=get_ist_now)
+    updated_at = db.Column(db.DateTime, default=get_ist_now, onupdate=get_ist_now)
 
     expenses = db.relationship('Expense', backref='user', lazy=True, cascade='all, delete-orphan')
     categories = db.relationship('Category', backref='user', lazy=True, cascade='all, delete-orphan')
@@ -85,7 +92,7 @@ class UserSession(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     token_hash = db.Column(db.String(128), nullable=False, unique=True)
     status = db.Column(db.String(20), nullable=False, default='active')  # active, expired
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, nullable=False, default=get_ist_now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=get_ist_now, onupdate=get_ist_now)
 
     user = db.relationship('User', backref='sessions')

@@ -2,8 +2,15 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from extensions import db
 from models import Category, Expense, User, UserSession
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import hashlib
+
+# IST is UTC+5:30
+IST_OFFSET = timedelta(hours=5, minutes=30)
+
+def get_ist_now():
+    """Get current time in IST timezone"""
+    return datetime.now(timezone.utc) + IST_OFFSET
 
 category_routes = Blueprint('category_routes', __name__)
 
@@ -139,7 +146,7 @@ def create_expense():
     
     # Set default date if not provided
     if not expense_date:
-        expense_date = datetime.utcnow().date()
+        expense_date = get_ist_now().date()
     
     print(f"Processing expense for date: {expense_date}")
     
@@ -182,7 +189,7 @@ def create_expense():
         expense = Expense(
             amount=float(data['amount']),
             description=data.get('description', ''),
-            date=expense_date or datetime.utcnow().date(),
+            date=expense_date or get_ist_now().date(),
             category_id=int(data['category_id']),
             user_id=user_id
         )
@@ -239,7 +246,7 @@ def get_expense_summary():
             db.func.sum(Expense.amount).label('total')
         ).join(Expense).filter(Expense.user_id == user_id).group_by(Category.name).order_by(db.desc('total')).limit(2).all()
 
-        six_months_ago = datetime.now() - timedelta(days=180)
+        six_months_ago = get_ist_now() - timedelta(days=180)
         monthly_expenses = db.session.query(
             db.func.to_char(Expense.date, 'YYYY-MM').label('month'),
             db.func.sum(Expense.amount).label('total')

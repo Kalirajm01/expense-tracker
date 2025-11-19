@@ -82,7 +82,7 @@ const Navbar: React.FC = () => {
   return (
     <AppBar position="sticky" elevation={0} sx={{ borderRadius: 0 }}>
       <Toolbar disableGutters sx={{ px: { xs: 1, sm: 2, md: 3 } }}>
-        {isMobile && (
+        {isMobile && isAuthenticated && location.pathname !== "/landing" && (
           <IconButton
             size="large"
             edge="start"
@@ -97,8 +97,8 @@ const Navbar: React.FC = () => {
 
         <Typography
           variant="h6"
-          component={RouterLink}
-          to="/"
+          component={location.pathname === "/landing" || location.pathname === "/" ? "div" : isAuthenticated && location.pathname !== "/signin" ? RouterLink : location.pathname === "/signin" ? RouterLink : "div"}
+          to={location.pathname === "/landing" || location.pathname === "/" ? undefined : isAuthenticated && location.pathname !== "/signin" ? "/" : location.pathname === "/signin" ? "/landing" : undefined}
           sx={{
             flexGrow: 1,
             fontWeight: 700,
@@ -106,15 +106,16 @@ const Navbar: React.FC = () => {
             color: "inherit",
             display: "flex",
             alignItems: "center",
+            cursor: location.pathname === "/landing" || location.pathname === "/" ? "default" : (location.pathname === "/signin" || (isAuthenticated && location.pathname !== "/signin")) ? "pointer" : "default",
             "&:hover": {
-              opacity: 0.9,
+              opacity: location.pathname === "/landing" || location.pathname === "/" ? 1 : (location.pathname === "/signin" || (isAuthenticated && location.pathname !== "/signin")) ? 0.9 : 1,
             },
           }}
         >
           Expense Tracker
         </Typography>
 
-        {isAuthenticated && (
+        {isAuthenticated && location.pathname !== "/landing" && (
           <Stack
             direction="row"
             spacing={1}
@@ -156,7 +157,7 @@ const Navbar: React.FC = () => {
           </Stack>
         )}
 
-        {isAuthenticated && (
+        {isAuthenticated && location.pathname !== "/landing" && (
           <Box sx={{ display: "flex", alignItems: "center", ml: 2 }}>
             <Typography variant="body1" sx={{ mr: 1, color: "white" }}>
               {user?.username}
@@ -176,7 +177,7 @@ const Navbar: React.FC = () => {
           </Box>
         )}
 
-        {isAuthenticated && (
+        {isAuthenticated && location.pathname !== "/landing" && (
           <Menu
             id="menu-appbar"
             anchorEl={anchorEl}
@@ -234,7 +235,7 @@ const Navbar: React.FC = () => {
           </Menu>
         )}
 
-        {isAuthenticated && (
+        {isAuthenticated && location.pathname !== "/landing" && (
           <Menu
             id="user-menu"
             anchorEl={userMenuAnchorEl}

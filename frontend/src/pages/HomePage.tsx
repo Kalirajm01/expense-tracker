@@ -25,10 +25,14 @@ import {
   DialogActions,
   TextField,
   MenuItem,
+  InputAdornment,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import AssessmentIcon from "@mui/icons-material/Assessment";
 import AddIcon from "@mui/icons-material/Add";
+import CheckIcon from "@mui/icons-material/Check";
 import { format } from "date-fns";
 import Chart from "react-apexcharts";
 import { DuplicateExpenseModal } from "../components/DuplicateExpenseModal";
@@ -93,9 +97,8 @@ const HomePage: React.FC = () => {
   const [showDuplicateModal, setShowDuplicateModal] = useState(false);
   const [pendingExpense, setPendingExpense] = useState<any>(null);
   const [duplicateExpense, setDuplicateExpense] = useState<any>(null);
-  const [showCategoryForm, setShowCategoryForm] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-  const [newCategoryDescription, setNewCategoryDescription] = useState("");
+  const [newCategoryName, setNewCategoryName] = useState<string>("");
+  const [showAddCategory, setShowAddCategory] = useState<boolean>(false);
 
   // Process monthly data for the chart
   const processMonthlyData = (expenses: Expense[]) => {
@@ -192,9 +195,8 @@ const HomePage: React.FC = () => {
       category_id: categories[0]?.id || "",
     });
     setFormErrors({ amount: "", description: "", category_id: "", date: "" });
-    setShowCategoryForm(false);
     setNewCategoryName("");
-    setNewCategoryDescription("");
+    setShowAddCategory(false);
   };
 
   const handleCloseAddModal = () => {
@@ -240,10 +242,7 @@ const HomePage: React.FC = () => {
       valid = false;
     }
 
-    if (categories.length === 0 && !showCategoryForm) {
-      newErrors.category_id = "Please add a category first";
-      valid = false;
-    } else if (categories.length > 0 && !newExpense.category_id) {
+    if (!newExpense.category_id) {
       newErrors.category_id = "Please select a category";
       valid = false;
     }
@@ -322,38 +321,22 @@ const HomePage: React.FC = () => {
     setDuplicateExpense(null);
   };
 
-  // Category creation handlers
   const handleCreateCategory = async () => {
-    if (!newCategoryName.trim()) {
-      setError("Category name is required");
-      return;
-    }
+    if (!newCategoryName.trim()) return;
 
     try {
-      const newCategory = await createCategory({
-        name: newCategoryName.trim(),
-        description: newCategoryDescription.trim(),
-      });
-
+      const newCategory = await createCategory({ name: newCategoryName.trim() });
       setCategories((prev) => [...prev, newCategory]);
+      setNewCategoryName("");
+      setShowAddCategory(false);
+      // Set the newly created category as selected
       setNewExpense((prev) => ({
         ...prev,
         category_id: newCategory.id,
       }));
-      setShowCategoryForm(false);
-      setNewCategoryName("");
-      setNewCategoryDescription("");
     } catch (error: any) {
-      setError(
-        error.response?.data?.error || "Failed to create category. Please try again."
-      );
+      setError(error.response?.data?.error || "Failed to create category");
     }
-  };
-
-  const handleCancelCategoryCreation = () => {
-    setShowCategoryForm(false);
-    setNewCategoryName("");
-    setNewCategoryDescription("");
   };
 
   // Render the component
@@ -582,70 +565,80 @@ const HomePage: React.FC = () => {
               InputLabelProps={{ shrink: true }}
               inputProps={{ max: format(new Date(), "yyyy-MM-dd") }}
             />
-            {showCategoryForm ? (
-              <Box sx={{ mt: 2, p: 2, border: `1px solid ${theme.palette.divider}`, borderRadius: 1 }}>
-                <Typography variant="subtitle2" sx={{ mb: 2, fontWeight: 600 }}>
-                  Create New Category
-                </Typography>
-                <TextField
-                  fullWidth
-                  margin="normal"
-                  label="Category Name"
-                  value={newCategoryName}
-                  onChange={(e) => setNewCategoryName(e.target.value)}
-                  size="small"
-                />
-                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                  <Button
+            <TextField
+              select
+              fullWidth
+              margin="normal"
+              label="Category"
+              value={newExpense.category_id || ""}
+              onChange={handleInputChange}
+              error={!!formErrors.category_id}
+              helperText={formErrors.category_id}
+              SelectProps={{
+                MenuProps: {
+                  PaperProps: {
+                    sx: {
+                      maxHeight: 300,
+                    },
+                  },
+                },
+              }}
+            >
+              {categories.length === 0 && (
+                <Box sx={{ p: 2, borderBottom: `1px solid ${theme.palette.divider}` }}>
+                  <TextField
+                    fullWidth
                     size="small"
-                    onClick={handleCreateCategory}
-                    variant="contained"
-                    color="primary"
-                  >
-                    Create Category
-                  </Button>
-                  <Button
-                    size="small"
-                    onClick={handleCancelCategoryCreation}
-                    variant="outlined"
-                  >
-                    Cancel
-                  </Button>
+                    placeholder="Enter new category name..."
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        handleCreateCategory();
+                      }
+                    }}
+                    InputProps={{
+                      endAdornment: newCategoryName.trim() ? (
+                        <InputAdornment position="end">
+                          <Tooltip title="Add a category">
+                            <IconButton
+                              size="small"
+                              onClick={handleCreateCategory}
+                              sx={{
+                                color: theme.palette.primary.main,
+                                "&:hover": {
+                                  backgroundColor: theme.palette.primary.main + "20",
+                                },
+                              }}
+                            >
+                              <CheckIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </InputAdornment>
+                      ) : null,
+                    }}
+                    onClick={(e) => e.stopPropagation()}
+                    onFocus={(e) => e.stopPropagation()}
+                  />
                 </Box>
-              </Box>
-            ) : categories.length === 0 ? (
-              <Box sx={{ mt: 2, p: 2, bgcolor: theme.palette.warning.light, borderRadius: 1 }}>
-                <Typography variant="body2" color="warning.main" sx={{ mb: 1 }}>
-                  No categories available. Please add one to continue.
-                </Typography>
-                <Button
-                  size="small"
-                  onClick={() => setShowCategoryForm(true)}
-                  variant="contained"
-                  color="warning"
-                >
-                  Add Category
-                </Button>
-              </Box>
-            ) : (
-              <TextField
-                select
-                fullWidth
-                margin="normal"
-                label="Category"
-                name="category_id"
-                value={newExpense.category_id || ""}
-                onChange={handleInputChange}
-                error={!!formErrors.category_id}
-                helperText={formErrors.category_id}
-              >
-                {categories.map((category) => (
-                  <MenuItem key={category.id} value={category.id}>
-                    {category.name}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
+              )}
+
+              {/* Existing Categories */}
+              {categories.map((category) => (
+                <MenuItem key={category.id} value={category.id}>
+                  {category.name}
+                </MenuItem>
+              ))}
+
+              {categories.length === 0 && (
+                <Box sx={{ p: 2, textAlign: "center" }}>
+                  <Typography variant="body2" color="text.secondary">
+                    No categories yet. Create one above.
+                  </Typography>
+                </Box>
+              )}
+            </TextField>
           </Box>
         </DialogContent>
         <DialogActions sx={{ p: 2, pr: 3, pb: 3 }}>
